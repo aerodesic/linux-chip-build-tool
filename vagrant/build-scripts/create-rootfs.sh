@@ -13,20 +13,24 @@ BUILD_DIR="/home/vagrant"
 OUTPUT_DIR="/vagrant"
 BUILDROOT_PATH="$BUILD_DIR/CHIP-buildroot"
 ROOTFS_DIR="$BUILD_DIR/rootfs"
+SOURCE_DIR=$BUILD_DIR/packages
 
 # This compiles CHIP-buildroot and decompresses the resulting rootfs
 # into the CHIP-buildroot/buildroot-rootfs directory for later reference.
 # Note: This can take a LONG time! Even on a powerful machine.
 compile_chip_buildroot () {
   cd $BUILDROOT_PATH
-  make chippro_defconfig
+  make chip_defconfig
   make
+  echo "**********************************************************************************************"
+  echo " end of chip_defconfig make"
+  echo "**********************************************************************************************"
   rm -rf buildroot-rootfs
   mkdir buildroot-rootfs
   tar -xf $BUILDROOT_PATH/output/images/rootfs.tar -C ./buildroot-rootfs
 }
 
-# Copy over relevant kernel and kernel modules for the CHIP Pro board
+# Copy over relevant kernel and kernel modules for the CHIP board
 # from the CHIP-buildroot rootfs
 copy_boot_modules () {
   cp -r $BUILDROOT_PATH/buildroot-rootfs/boot/* $ROOTFS_DIR/boot/
@@ -36,8 +40,9 @@ copy_boot_modules () {
 # Create a rootfs using multistrap and clean any old data
 create_rootfs () {
   umount -l $ROOTFS_DIR/proc && umount -f $ROOTFS_DIR/proc
-  rm -rf $OUTPUT_DIR/rootfs.tar $ROOTFS_DIR
-  multistrap -f $MULTISTRAP_CONF_FILE -d $ROOTFS_DIR
+  rm -rf $OUTPUT_DIR/rootfs.tar $ROOTFS_DIR $SOURCE_DIR
+  mkdir -p $SOURCE_DIR/
+  multistrap -f $MULTISTRAP_CONF_FILE -d $ROOTFS_DIR --source-dir $SOURCE_DIR --tidy-up
   copy_boot_modules
   sudo chown -R $USER:$USER $ROOTFS_DIR
 }
